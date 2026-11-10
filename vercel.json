@@ -1,0 +1,5 @@
+{
+  "functions": {
+    "api/visits-stream.js": { "maxDuration": 60 }
+  }
+}

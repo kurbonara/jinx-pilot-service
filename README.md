@@ -34,7 +34,10 @@ To replace or add one: save it as `public/themes/<theme id>.jpg`, run `npm run t
 Theme options: `palette` colors, `pos` / `posMobile` framing, `align: "right"` when Kagura stands on the left of the art, `word` for the hero headline.
 
 ## Site visit counter
-Shown in the footer. Counts one visit per browser session, using `api/visits.js` (a Vercel Function) and a free Upstash Redis database.
+Shown in the footer and updates live: when someone visits, every open page sees the new number within about a second.
+- `api/visits.js` counts one visit per browser session and broadcasts the new total (Upstash publish).
+- `api/visits-stream.js` keeps a live connection (Server-Sent Events) to each open page and forwards those broadcasts. Connections reconnect every ~50s; if live mode isn't available it falls back to checking every 2s.
+- `api/_redis.js` shared Upstash helpers (not an endpoint).
 
 Setup (one time): Vercel project → **Storage** → **Create Database** → **Upstash for Redis** (free plan) → connect it to this project → redeploy.
 The counter stays hidden until the database is connected, and it doesn't run under `npm run dev` (use `npx vercel dev` to test locally).
