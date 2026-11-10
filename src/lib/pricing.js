@@ -31,7 +31,15 @@ export function mythicTier(stars) {
   return { key: "mythic", name: "Mythic" };
 }
 
-/** rank = { tier: "epic" | "legend" | "mythic", div: 0-4, stars: 0-4, mStars: number } */
+/** rank = { tier: "epic" | "legend" | "mythic" | null, div: 0-4 | null, stars: 0-4 | null, mStars: number | null }
+    (null = not picked yet; the calculator starts empty) */
+export const EMPTY_RANK = { tier: null, div: null, stars: null, mStars: null };
+
+export function isRankComplete(r) {
+  if (!r || !r.tier) return false;
+  return r.tier === "mythic" ? r.mStars !== null : r.div !== null && r.stars !== null;
+}
+
 export function toIndex(r) {
   if (r.tier === "epic") return r.div * 5 + r.stars;
   if (r.tier === "legend") return 25 + r.div * 5 + r.stars;

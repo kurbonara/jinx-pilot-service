@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { peso } from "../../lib/pricing.js";
 
 /** Mobile-only bar: visible while the calculator is on screen but the summary card isn't. */
-export default function StickyTotal({ sectionRef, summaryRef, total, stars, onCopy }) {
+export default function StickyTotal({ sectionRef, summaryRef, total, stars, ready, onCopy }) {
   const [secIn, setSecIn] = useState(false);
   const [sumIn, setSumIn] = useState(false);
   const show = secIn && !sumIn;
@@ -26,10 +26,10 @@ export default function StickyTotal({ sectionRef, summaryRef, total, stars, onCo
     <div className={"sticky-total" + (show ? " is-visible" : "")} aria-hidden={!show}>
       <div>
         <small>Total</small>
-        <strong>{peso(total)}</strong>
+        <strong>{ready ? peso(total) : "₱ —"}</strong>
       </div>
-      <span>{stars.toLocaleString("en-PH")}★</span>
-      <button type="button" className="btn btn-sm btn-primary" onClick={onCopy} disabled={stars === 0} tabIndex={show ? 0 : -1}>
+      {ready && <span>{stars.toLocaleString("en-PH")}★</span>}
+      <button type="button" className="btn btn-sm btn-primary" onClick={onCopy} disabled={!ready} tabIndex={show ? 0 : -1}>
         Copy order
       </button>
     </div>

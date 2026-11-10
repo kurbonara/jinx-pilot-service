@@ -17,13 +17,15 @@ const MYTHIC_QUICK = [
   [1000, "1,000★"],
 ];
 
+/** value fields may be null (= not picked yet). Nothing is pre-selected. */
 export default function RankPicker({ id, value, onChange, off = 0 }) {
   const set = (patch) => onChange({ ...value, ...patch });
-  const tier = mythicTier(value.mStars);
+  const hasMythic = value.mStars !== null;
+  const tier = hasMythic ? mythicTier(value.mStars) : null;
 
   // local text so the field can be cleared while typing
-  const [text, setText] = useState(String(value.mStars));
-  useEffect(() => setText(String(value.mStars)), [value.mStars]);
+  const [text, setText] = useState(hasMythic ? String(value.mStars) : "");
+  useEffect(() => setText(value.mStars !== null ? String(value.mStars) : ""), [value.mStars]);
 
   return (
     <div className="rank-picker">
@@ -43,7 +45,9 @@ export default function RankPicker({ id, value, onChange, off = 0 }) {
         ))}
       </div>
 
-      {value.tier !== "mythic" ? (
+      {!value.tier ? (
+        <p className="pick-hint">Pick a tier to continue.</p>
+      ) : value.tier !== "mythic" ? (
         <div>
           <span className="field-label">Division</span>
           <div className="chips">
@@ -64,6 +68,7 @@ export default function RankPicker({ id, value, onChange, off = 0 }) {
             <button
               type="button"
               className={"star-btn star-zero" + (value.stars === 0 ? " is-on" : "")}
+              aria-pressed={value.stars === 0}
               onClick={() => set({ stars: 0 })}
             >
               0★
@@ -72,7 +77,7 @@ export default function RankPicker({ id, value, onChange, off = 0 }) {
               <button
                 key={s}
                 type="button"
-                className={"star-btn" + (s <= value.stars ? " is-on" : "")}
+                className={"star-btn" + (value.stars !== null && s <= value.stars ? " is-on" : "")}
                 aria-label={`${s} star${s > 1 ? "s" : ""}`}
                 aria-pressed={value.stars === s}
                 onClick={() => set({ stars: s })}
@@ -93,18 +98,21 @@ export default function RankPicker({ id, value, onChange, off = 0 }) {
               value={text}
               min={0}
               max={MAX_MYTHIC}
-              onStep={(d) => set({ mStars: clamp(value.mStars + d, 0, MAX_MYTHIC) })}
+              placeholder="e.g. 25"
+              onStep={(d) => set({ mStars: clamp((value.mStars ?? 0) + d, 0, MAX_MYTHIC) })}
               onInput={(v) => {
                 setText(v);
                 const n = parseInt(v, 10);
-                set({ mStars: clamp(isNaN(n) ? 0 : n, 0, MAX_MYTHIC) });
+                set({ mStars: isNaN(n) ? null : clamp(n, 0, MAX_MYTHIC) });
               }}
-              onBlur={() => setText(String(value.mStars))}
+              onBlur={() => setText(value.mStars !== null ? String(value.mStars) : "")}
               label="star"
             />
-            <span className="mythic-badge" data-tier={tier.key}>
-              {tier.name}
-            </span>
+            {tier && (
+              <span className="mythic-badge" data-tier={tier.key}>
+                {tier.name}
+              </span>
+            )}
           </div>
           <div className="quick">
             {MYTHIC_QUICK.map(([n, label]) => (

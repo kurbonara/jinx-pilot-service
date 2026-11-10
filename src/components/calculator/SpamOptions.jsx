@@ -38,9 +38,13 @@ export default function SpamOptions({ by, onBy, starsText, onStars, budgetText, 
             min={1}
             max={MAX_STARS}
             label="star"
+            placeholder="e.g. 20"
             onStep={(d) => onStars(String(clamp((parseInt(starsText, 10) || 0) + d, 1, MAX_STARS)))}
             onInput={onStars}
-            onBlur={() => onStars(String(clamp(parseInt(starsText, 10) || 1, 1, MAX_STARS)))}
+            onBlur={() => {
+              const n = parseInt(starsText, 10);
+              onStars(n > 0 ? String(clamp(n, 1, MAX_STARS)) : ""); // keep empty if nothing entered
+            }}
           />
           <div className="quick">
             {STAR_QUICK.map((n) => (
@@ -61,6 +65,7 @@ export default function SpamOptions({ by, onBy, starsText, onStars, budgetText, 
               inputMode="numeric"
               min={0}
               step={50}
+              placeholder="e.g. 1000"
               value={budgetText}
               onChange={(e) => onBudget(e.target.value)}
             />

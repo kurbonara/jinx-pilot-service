@@ -4,7 +4,7 @@ import { ArrowIcon, DownloadIcon, ContactIcons } from "../Icons.jsx";
 import { BOOKING } from "../../config.js";
 
 const Summary = forwardRef(function Summary({ quote, onCopy, onSavePng, saving }, ref) {
-  const { label, from, toLabel, to, sub, total, lines, error, stars } = quote;
+  const { label, from, toLabel, to, sub, total, lines, error, stars, ready } = quote;
   const totalRef = useRef(null);
   const prev = useRef(total);
 
@@ -23,10 +23,10 @@ const Summary = forwardRef(function Summary({ quote, onCopy, onSavePng, saving }
   return (
     <aside className="summary" aria-live="polite" ref={ref}>
       <p className="summary-label">{label}</p>
-      <p className="summary-total" ref={totalRef}>
-        {peso(total)}
+      <p className={"summary-total" + (ready ? "" : " is-empty")} ref={totalRef}>
+        {ready ? peso(total) : "₱ —"}
       </p>
-      <p className="summary-sub">{sub}</p>
+      <p className={"summary-sub" + (ready ? "" : " is-prompt")}>{sub}</p>
       <div className="route">
         <div>
           <small>From</small>
@@ -53,7 +53,7 @@ const Summary = forwardRef(function Summary({ quote, onCopy, onSavePng, saving }
             </li>
           ))
         ) : (
-          <li className="empty">No stars selected yet</li>
+          <li className="empty">Your price breakdown will appear here</li>
         )}
       </ul>
       {error && (
@@ -61,10 +61,10 @@ const Summary = forwardRef(function Summary({ quote, onCopy, onSavePng, saving }
           {error}
         </p>
       )}
-      <button type="button" className="btn btn-primary btn-block" onClick={onCopy} disabled={stars === 0}>
+      <button type="button" className="btn btn-primary btn-block" onClick={onCopy} disabled={!ready || stars === 0}>
         Copy order details
       </button>
-      <button type="button" className="btn btn-ghost btn-block" onClick={onSavePng} disabled={stars === 0 || saving}>
+      <button type="button" className="btn btn-ghost btn-block" onClick={onSavePng} disabled={!ready || stars === 0 || saving}>
         <DownloadIcon />
         {saving ? "Creating image…" : "Save order as PNG"}
       </button>

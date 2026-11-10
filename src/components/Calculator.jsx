@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState } from "react";
 import {
   ANY_HERO_DISCOUNT,
+  EMPTY_RANK,
   MAX_STARS,
   clamp,
   costBetween,
-  fromIndex,
   indexToLabel,
+  isRankComplete,
   peso,
   rateAt,
   starsForBudget,
@@ -52,11 +53,12 @@ async function copyText(text) {
 
 export default function Calculator({ onToast }) {
   const [mode, setMode] = useState("goal");
-  const [current, setCurrent] = useState({ tier: "epic", div: 0, stars: 0, mStars: 0 });
-  const [target, setTarget] = useState({ tier: "mythic", div: 0, stars: 0, mStars: 0 });
+  // everything the client fills in starts empty — no made-up price until they choose
+  const [current, setCurrent] = useState(EMPTY_RANK);
+  const [target, setTarget] = useState(EMPTY_RANK);
   const [spamBy, setSpamBy] = useState("stars");
-  const [spamStars, setSpamStars] = useState("10");
-  const [budget, setBudget] = useState("1000");
+  const [spamStars, setSpamStars] = useState("");
+  const [budget, setBudget] = useState("");
   const [hero, setHero] = useState("kagura");
   const off = hero === "any" ? ANY_HERO_DISCOUNT : 0;
 
@@ -64,15 +66,35 @@ export default function Calculator({ onToast }) {
   const sectionRef = useRef(null);
   const summaryRef = useRef(null);
 
-  // keep the target ahead of the current rank
-  const changeCurrent = (next) => {
-    setCurrent(next);
-    const c = toIndex(next);
-    if (toIndex(target) <= c) setTarget(fromIndex(c + 5, target));
-  };
-
   const quote = useMemo(() => {
     const goal = mode === "goal";
+    const label = goal ? "Estimated total" : spamBy === "budget" ? "Spam pilot · budget" : "Spam pilot · estimate";
+    const toLabel = goal ? "Target" : "Could reach";
+    const spamStarsN = parseInt(spamStars, 10);
+    const budgetN = parseInt(budget, 10);
+
+    // what the client still needs to fill in (shown instead of a price)
+    let prompt = "";
+    if (!isRankComplete(current)) prompt = "Choose your current rank in step 1 to see the price.";
+    else if (goal && !isRankComplete(target)) prompt = "Now choose your target rank in step 2.";
+    else if (!goal && spamBy === "stars" && !(spamStarsN > 0)) prompt = "Enter how many stars to gain in step 2.";
+    else if (!goal && spamBy === "budget" && !(budgetN > 0)) prompt = "Enter your budget in step 2.";
+    if (prompt) {
+      return {
+        ready: false,
+        lines: [],
+        total: 0,
+        stars: 0,
+        saved: 0,
+        error: "",
+        label,
+        toLabel,
+        sub: prompt,
+        from: isRankComplete(current) ? indexToLabel(toIndex(current)) : "—",
+        to: goal && isRankComplete(target) ? indexToLabel(toIndex(target)) : "—",
+      };
+    }
+
     const a = toIndex(current);
     let end;
     let error = "";
@@ -85,10 +107,10 @@ export default function Calculator({ onToast }) {
         res = { lines: [], total: 0, stars: 0 };
       } else res = costBetween(a, end, off);
     } else if (spamBy === "stars") {
-      end = a + clamp(parseInt(spamStars, 10) || 0, 0, MAX_STARS);
+      end = a + clamp(spamStarsN, 0, MAX_STARS);
       res = costBetween(a, end, off);
     } else {
-      const n = starsForBudget(a, Math.max(0, parseInt(budget, 10) || 0), off);
+      const n = starsForBudget(a, budgetN, off);
       end = a + n;
       res = costBetween(a, end, off);
       if (n === 0) error = `Budget is below one star (${peso(rateAt(a, off))} at your rank).`;
@@ -111,14 +133,15 @@ export default function Calculator({ onToast }) {
 
     return {
       ...res,
+      ready: res.stars > 0,
       error,
       from,
-      to,
-      label: goal ? "Estimated total" : spamBy === "budget" ? "Spam pilot · budget" : "Spam pilot · estimate",
-      toLabel: goal ? "Target" : "Could reach",
+      to: goal && error ? indexToLabel(end) : to,
+      label,
+      toLabel,
       sub: res.stars
         ? `${fmt(res.stars)} star${res.stars > 1 ? "s" : ""}${goal ? "" : " · billed per star gained"}${saved ? ` · you save ${peso(saved)}` : ""}`
-        : "Pick your ranks to see the price",
+        : "Adjust your choices to see the price.",
       orderText,
       goal,
       service: `${goal ? "Rank goal" : "Spam pilot · no star goal"} · ${heroLabel}`,
@@ -212,7 +235,7 @@ export default function Calculator({ onToast }) {
               <legend className="panel-title">
                 <span className="step">1</span> Current rank
               </legend>
-              <RankPicker id="current" value={current} onChange={changeCurrent} off={off} />
+              <RankPicker id="current" value={current} onChange={setCurrent} off={off} />
             </fieldset>
 
             {mode === "goal" ? (
@@ -248,6 +271,7 @@ export default function Calculator({ onToast }) {
         summaryRef={summaryRef}
         total={quote.total}
         stars={quote.stars}
+        ready={quote.ready}
         onCopy={handleCopy}
       />
     </section>
